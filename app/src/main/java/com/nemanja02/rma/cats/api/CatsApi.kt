@@ -7,7 +7,6 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface CatsApi {
-
     @GET("breeds")
     suspend fun getBreeds(): List<CatApiModel>
 

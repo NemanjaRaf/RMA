@@ -1,9 +1,14 @@
 package com.nemanja02.rma.cats.details
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,86 +16,193 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import coil.compose.rememberAsyncImagePainter
-import com.google.accompanist.flowlayout.FlowRow
+import com.nemanja02.rma.LocalAnalytics
+import com.nemanja02.rma.auth.UserStore
+import com.nemanja02.rma.core.compose.AppIconButton
+import com.nemanja02.rma.core.theme.AppTheme
+import com.nemanja02.rma.core.theme.EnableEdgeToEdge
+import com.nemanja02.rma.drawer.AppDrawer
+import com.nemanja02.rma.users.profile.ProfileScreen
+import kotlinx.coroutines.launch
 
-fun NavGraphBuilder.catDetails(
+fun NavGraphBuilder.cat(
     route: String,
     arguments: List<NamedNavArgument>,
-    onClose: () -> Unit
-) = composable(route, arguments = arguments) { navBackStackEntry ->
-    val catId = navBackStackEntry.arguments?.getString("catId")
-        ?: throw IllegalStateException("catId required")
+    onCatClick: (String) -> Unit,
+    onProfileClick: () -> Unit,
+    onCatsClick: () -> Unit,
+    onQuizClick: () -> Unit,
+    onLeaderboardClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    authData: UserStore?
+) = composable(
+    route = route,
+    arguments = arguments,
+) { navBackStackEntry ->
 
-    var catDetailsViewModel = viewModel<CatDetailsViewModel>(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return CatDetailsViewModel(catId = catId) as T
-            }
-        }
-    )
+    val catDetailsViewModel: CatDetailsViewModel = hiltViewModel(navBackStackEntry)
 
     val state = catDetailsViewModel.state.collectAsState()
 
-    CatDetailsScreen(
+    EnableEdgeToEdge(isDarkTheme = false)
+    CatListScreen(
         state = state.value,
-        eventPublisher = {
-            catDetailsViewModel.setEvent(it)
-        },
-        onClose = onClose,
+        onCatClick = onCatClick,
+        onProfileClick = onProfileClick,
+        onCatsClick = onCatsClick,
+        onQuizClick = onQuizClick,
+        onLeaderboardClick = onLeaderboardClick,
+        onSettingsClick = onSettingsClick,
+        authData = authData
     )
-
 }
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+
+
 @Composable
-fun CatDetailsScreen(
-    state: CatDetailsContract.CatDetailsState,
-    eventPublisher: (CatDetailsContract.CatDetailsEvent) -> Unit,
-    onClose: () -> Unit,
+fun CatListScreen(
+    state: CatDetailsState,
+    onCatClick: (String) -> Unit,
+    onProfileClick: () -> Unit,
+    onCatsClick: () -> Unit,
+    onQuizClick: () -> Unit,
+    onLeaderboardClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    authData: UserStore? = null,
 ) {
-    val context = LocalContext.current
+    val uiScope = rememberCoroutineScope()
+    val drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
+
+    val analytics = LocalAnalytics.current
+    SideEffect {
+        analytics.log("Neka poruka")
+    }
+
+    BackHandler(enabled = drawerState.isOpen) {
+        uiScope.launch { drawerState.close() }
+    }
+
+    AppDrawer(
+        content = {
+            CatListScaffold(
+                state = state,
+                onCatClick = onCatClick,
+                onCatsClick = onCatsClick,
+                onDrawerMenuClick = {
+                    uiScope.launch {
+                        drawerState.open()
+                    }
+                }
+            )
+        },
+        drawerState = drawerState,
+        onProfileClick = onProfileClick,
+        onCatsClick = onCatsClick,
+        onQuizClick = onQuizClick,
+        onLeaderboardClick = onLeaderboardClick,
+        onSettingsClick = onSettingsClick,
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+private fun CatListScaffold(
+    state: CatDetailsState,
+    onCatClick: (String) -> Unit,
+    onCatsClick: () -> Unit,
+    onDrawerMenuClick: () -> Unit,
+) {
+    val uiScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+
+    val showScrollToTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0
+        }
+    }
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
-//        topBar = {
-//            MediumTopAppBar(
-//                title = { Text("Cat") },
-//                actions = {
-//                    IconButton(onClick = { onClose() }) {
-//                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Close")
-//                    }
-//                }
-//            )
-//        },
+        topBar = {
+            TopAppBar(
+                navigationIcon = {
+                    AppIconButton(
+                        imageVector = Icons.Default.Menu,
+                        onClick = onDrawerMenuClick,
+                    )
+                },
+                title = { Text(
+                    text = state.cat?.name ?: "Cat Details",
+                    onTextLayout = {}
+                ) },
+                scrollBehavior = scrollBehavior,
+                actions = {
+                    AppIconButton(
+                        imageVector = Icons.Default.CameraAlt,
+                        onClick = onDrawerMenuClick,
+                    )
+                }
+            )
+        },
         content = { paddingValues ->
             if (state.loading) {
                 Box(
@@ -105,6 +217,7 @@ fun CatDetailsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
+                            .padding(paddingValues)
                     ) {
                         // Cat Image
                         Box {
@@ -117,9 +230,9 @@ fun CatDetailsScreen(
                                 contentScale = ContentScale.Crop,
 
                                 )
-                            IconButton(onClick = { onClose() }) {
-                            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Close")
-                        }
+                            IconButton(onClick = { onCatsClick() }) {
+                                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Close")
+                            }
                         }
                         Spacer(modifier = Modifier.padding(8.dp))
 
@@ -130,7 +243,7 @@ fun CatDetailsScreen(
                         ) {
                             // Cat Name
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = cat.name, style = MaterialTheme.typography.headlineMedium)
+//                                Text(text = cat.name, style = MaterialTheme.typography.headlineMedium)
                                 if (cat.rare == 1) {
                                     Badge(
                                         modifier = Modifier.padding(start = 8.dp),
@@ -173,8 +286,9 @@ fun CatDetailsScreen(
                             Spacer(modifier = Modifier.padding(8.dp))
 
                             FlowRow(
-                                mainAxisSpacing = 8.dp, // Razmak između čipova u istom redu
-                                crossAxisSpacing = 8.dp // Razmak između redova
+//                                mainAxisSpacing = 8.dp, // Razmak između čipova u istom redu
+//                                crossAxisSpacing = 8.dp // Razmak između redova
+                                maxItemsInEachRow = 3
                             ) {
                                 cat.temperament.split(",").forEach { temperament ->
                                     AssistChip(
@@ -213,10 +327,10 @@ fun CatDetailsScreen(
 
                             Button(onClick = {
 
-                                eventPublisher(
-                                    CatDetailsContract.CatDetailsEvent.OpenWiki(cat.wikipedia_url?.toUri(), context)
-
-                                )
+//                                eventPublisher(
+//                                    CatDetailsContract.CatDetailsEvent.OpenWiki(cat.wikipedia_url?.toUri(), context)
+//
+//                                )
 //                                val customTabsIntent = CustomTabsIntent.Builder().build()
 //                                customTabsIntent.launchUrl(context, cat.wikipedia_url.toUri())
 
@@ -233,8 +347,20 @@ fun CatDetailsScreen(
                     }
                 }
             }
-        }
+        },
+        floatingActionButton = {
+            if (showScrollToTop) {
+                FloatingActionButton(
+                    onClick = {
+                        uiScope.launch { listState.animateScrollToItem(index = 0) }
+                    },
+                ) {
+                    Image(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = null)
+                }
+            }
+        },
     )
+
 }
 
 @Composable

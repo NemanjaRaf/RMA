@@ -1,6 +1,6 @@
-package com.nemanja02.rma.cats.list.model
+package com.nemanja02.rma.cats.model
 
-data class Breed(
+data class CatUiModel(
     val id: String,
     val name: String,
     val description: String,
@@ -16,12 +16,11 @@ data class Breed(
     var life_span: String,
     var origin : String,
     var country_codes: String,
-    var wikipedia_url: String?,
+    var wikipedia_url: String? = null,
     var rare : Int,
 )
 
 data class Image(
-    val id: String,
     val url: String,
 )
 

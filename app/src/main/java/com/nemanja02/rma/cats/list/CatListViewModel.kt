@@ -1,120 +1,100 @@
 package com.nemanja02.rma.cats.list
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nemanja02.rma.cats.api.model.CatApiModel
-import com.nemanja02.rma.cats.list.model.Breed
+import com.nemanja02.rma.cats.api.model.CatApiImage
+import com.nemanja02.rma.cats.api.model.CatApiWeight
+import com.nemanja02.rma.cats.db.CatData
+import com.nemanja02.rma.cats.model.CatUiModel
+import com.nemanja02.rma.cats.model.Image
+import com.nemanja02.rma.cats.model.Weight
 import com.nemanja02.rma.cats.repository.CatsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.seconds
+import javax.inject.Inject
 
-class CatListViewModel(
-    private val repository: CatsRepository = CatsRepository,
-) : ViewModel() {
-    private val _state = MutableStateFlow(CatListContract.CatListState())
+@HiltViewModel
+class CatListViewModel @Inject constructor(
+    private val catRepository: CatsRepository,
+) : ViewModel(){
+
+
+    private val _state = MutableStateFlow(CatListState())
     val state = _state.asStateFlow()
-    private fun setState(reducer: CatListContract.CatListState.() -> CatListContract.CatListState) = _state.update(reducer)
-
-    private val events = MutableSharedFlow<CatListContract.CatListEvent>()
-    fun setEvent(event: CatListContract.CatListEvent) = viewModelScope.launch { events.emit(event) }
+    private fun setState(reducer: CatListState.() -> CatListState) = _state.update(reducer)
 
     init {
-        observeEvents()
         fetchAllCats()
-        observeSearchQuery()
+        observeCats()
     }
 
-    @OptIn(FlowPreview::class)
-    private fun observeSearchQuery() {
+    private fun observeCats() {
         viewModelScope.launch {
-            events
-                .filterIsInstance<CatListContract.CatListEvent.SearchQueryChanged>()
-                .debounce(2.seconds)
+            setState { copy(loading = true) }
+            catRepository.observeAllCats()
+                .distinctUntilChanged()
                 .collect {
-                    // Called only when search query was changed
-                    // and once 2 seconds have passed after the last char
-
-
-                    // This is helpful to avoid trigger expensive calls
-                    // on every character change
-                    //s
-                    //si
-                    //sib
-                    //sibi
-                    //sibir
-                    //sibirs
-                }
-        }
-    }
-
-    private fun observeEvents() {
-        viewModelScope.launch {
-            events.collect {
-                when (it) {
-                    is CatListContract.CatListEvent.SearchQueryChanged -> {
-                        println(it)
-                        setState { copy(query = it.query, filteredCats = state.value.cats.filter { cat ->
-                            cat.name.contains(it.query, ignoreCase = true) ||
-                                    cat.description.contains(it.query, ignoreCase = true)
-                        })}
+                    setState {
+                        copy(
+                            loading = false,
+                            cats = it.map { it.asCatUiModel() },
+                        )
                     }
-                    is CatListContract.CatListEvent.OpenSearchMode -> setState { copy(isSearchMode = true) }
-                    is CatListContract.CatListEvent.ClearSearch -> setState { copy(query = "", isSearchMode = false) }
-                    is CatListContract.CatListEvent.CloseSearchMode -> setState { copy(isSearchMode = false) }
-
-//                    CatListContract.CatListEvent.Dummy -> TODO()
-                    else -> {}
                 }
-            }
         }
     }
 
     private fun fetchAllCats() {
         viewModelScope.launch {
-            setState { copy(loading = true) }
+            setState { copy(updating = true) }
             try {
-                val users = withContext(Dispatchers.IO) {
-                    repository.getBreeds().map {
-                        it.asCatUIModel()
-                    }
+                withContext(Dispatchers.IO) {
+                    catRepository.fetchAll()
                 }
-
-                setState { copy(cats = users) }
             } catch (error: Exception) {
-                println("Error fetching users: $error")
+                // TODO Handle error
+                Log.e("Greska", "Message", error)
             } finally {
-                setState { copy(loading = false) }
+                setState { copy(updating = false) }
             }
         }
     }
 
-    private fun CatApiModel.asCatUIModel() = Breed(
+    private fun CatData.asCatUiModel() = CatUiModel(
         id = id,
         name = name,
         description = description,
-        origin = origin,
-        temperament = temperament,
-        image = image?.asImageUIModel(),
-        weight = weight?.asWeightUIModel(),
+        image = image?.asImage(),
+        weight = weight?.asWeight(),
         energy_level = energy_level,
         affection_level = affection_level,
         child_friendly = child_friendly,
         dog_friendly = dog_friendly,
         stranger_friendly = stranger_friendly,
-
-        alt_names = alt_names,
-        country_codes = country_codes,
         life_span = life_span,
+        origin = origin,
+        country_codes = country_codes,
         wikipedia_url = wikipedia_url,
-        rare = rare,
+        alt_names = alt_names,
+        temperament = temperament,
+        rare = rare
     )
+
+    private fun CatApiImage.asImage() = Image(
+        url = url,
+    )
+
+    private fun CatApiWeight.asWeight() = Weight(
+        imperial = imperial,
+        metric = metric,
+    )
+
+
 }

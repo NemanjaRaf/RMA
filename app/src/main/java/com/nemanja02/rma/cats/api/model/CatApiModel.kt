@@ -1,6 +1,7 @@
 package com.nemanja02.rma.cats.api.model
 
-import com.nemanja02.rma.cats.list.model.Image
+import com.nemanja02.rma.cats.model.Image
+import com.nemanja02.rma.cats.model.Weight
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -8,9 +9,9 @@ data class CatApiModel(
     val id: String,
     val name: String,
     val description: String,
-    val alt_names: String,
+    val alt_names: String? = null,
     val temperament: String,
-    val image: CatApiImage,
+    val image: CatApiImage? = null,
     val weight: CatApiWeight,
     var energy_level: Int,
     var affection_level: Int,
@@ -20,17 +21,19 @@ data class CatApiModel(
     var life_span: String,
     var origin : String,
     var country_codes: String,
-    var wikipedia_url: String?,
+    var wikipedia_url: String? = null,
     var rare : Int,
 )
 
 @Serializable
 data class CatApiImage(
-    val id: String,
+    val id: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
     val url: String,
 ) {
     fun asImageUIModel(): Image {
-        return Image(id, url)
+        return Image(url)
     }
 }
 
@@ -39,7 +42,7 @@ data class CatApiWeight(
     val imperial: String,
     val metric: String,
 ) {
-    fun asWeightUIModel(): com.nemanja02.rma.cats.list.model.Weight {
-        return com.nemanja02.rma.cats.list.model.Weight(imperial, metric)
+    fun asWeightUIModel(): Weight {
+        return Weight(imperial, metric)
     }
 }

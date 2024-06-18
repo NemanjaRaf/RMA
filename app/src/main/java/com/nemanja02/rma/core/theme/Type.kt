@@ -1,4 +1,4 @@
-package com.nemanja02.rma.ui.theme
+package com.nemanja02.rma.core.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
@@ -30,5 +30,13 @@ val Typography = Typography(
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
-    */
+    */,
+
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 1.0.sp
+    ),
 )

@@ -1,4 +1,4 @@
-package com.nemanja02.rma.ui.theme
+package com.nemanja02.rma.core.theme
 
 import androidx.compose.ui.graphics.Color
 

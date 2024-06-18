@@ -1,28 +1,25 @@
 package com.nemanja02.rma.cats.repository
 
-import com.nemanja02.rma.networking.retrofit
 import com.nemanja02.rma.cats.api.CatsApi
-import com.nemanja02.rma.cats.api.model.CatApiImage
-import com.nemanja02.rma.cats.api.model.CatApiModel
+import com.nemanja02.rma.cats.mappers.asCatDbModel
+import com.nemanja02.rma.db.AppDatabase
+import javax.inject.Inject
 
-object CatsRepository {
-    private val catsApi: CatsApi = retrofit.create(CatsApi::class.java)
-
-    suspend fun getBreeds(): List<CatApiModel> {
-        val cats = catsApi.getBreeds()
-
-        return cats
+class CatsRepository @Inject constructor(
+    private val catsApi: CatsApi,
+    private val database: AppDatabase,
+) {
+    suspend fun fetchAll() {
+        val breeds = catsApi.getBreeds()
+        database.catDao().insertAll(cats = breeds.map { it.asCatDbModel() })
     }
+    fun observeAllCats() = database.catDao().observeAll()
 
-    suspend fun getBreedById(id: String): CatApiModel {
-        val cat = catsApi.getBreedById(id)
+    fun fetchCatById(id: String) = database.catDao().observeCatById(id)
 
-        return cat
-    }
+    fun getRandomCat() = database.catDao().getRandomCat()
 
-    suspend fun getBreedImages(id: String): CatApiImage? {
-        val images = catsApi.getBreedImages(id).firstOrNull()
+    fun getRandomNCats(n: Int, excludeId: String) = database.catDao().getRandomNCats(n, excludeId)
 
-        return images
-    }
+    fun getRandomTemperamentsExcluding(excludeTemperaments: List<String>) = database.catDao().getRandomTemperamentsExcluding(excludeTemperaments)
 }
