@@ -36,19 +36,41 @@ object NetworkingModule {
 
     @Singleton
     @Provides
-    @BaseUrl
-    fun provideBaseUrl(): String {
+    @TheCatApi
+    fun provideCatBaseUrl(): String {
         return "https://api.thecatapi.com/v1/"
     }
 
     @Singleton
     @Provides
-    fun provideRetrofitClient(
+    @LeaderboardApi
+    fun provideLeaderboardBaseUrl(): String {
+        return "https://rma.finlab.rs/"
+    }
+
+    @Singleton
+    @Provides
+    @TheCatApi
+    fun provideTheCatApiRetrofitClient(
         okHttpClient: OkHttpClient,
-        @BaseUrl apiUrl: String,
+        @TheCatApi apiUrl: String,
     ) : Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.thecatapi.com/v1/")
+            .baseUrl(apiUrl)
+            .client(okHttpClient)
+            .addConverterFactory(AppJson.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    @LeaderboardApi
+    fun provideAnotherApiRetrofitClient(
+        okHttpClient: OkHttpClient,
+        @LeaderboardApi apiUrl: String,
+    ) : Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(apiUrl)
             .client(okHttpClient)
             .addConverterFactory(AppJson.asConverterFactory("application/json".toMediaType()))
             .build()

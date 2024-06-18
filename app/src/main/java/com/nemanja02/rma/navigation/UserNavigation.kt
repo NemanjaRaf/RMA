@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.nemanja02.rma.auth.AuthStore
 import com.nemanja02.rma.cats.details.cat
 import com.nemanja02.rma.cats.list.cats
+import com.nemanja02.rma.leaderboard.leaderboard
 import com.nemanja02.rma.quiz.quiz
 import com.nemanja02.rma.users.profile.profile
 import com.nemanja02.rma.users.register.model.asUserStore
@@ -169,6 +170,30 @@ fun ApplicationNavigation(authStore: AuthStore) {
                 onPublishScore = {
                     navController.navigate(route = "cats")
                 }
+            )
+
+            leaderboard(
+                route = "leaderboard",
+                onCatClick = {
+                    navController.navigate(route = "cats/$it")
+                },
+                onProfileClick = {
+                    navController.navigate(route = "profile")
+                },
+                onCatsClick = {
+                    navController.navigate(route = "cats")
+                },
+                onQuizClick = {
+                    navController.navigate(route = "quiz")
+                },
+                onLeaderboardClick = {
+                    navController.navigate(route = "leaderboard")
+                },
+                onSettingsClick = {
+                    navController.navigate(route = "settings")
+                },
+                authData = authData
+
             )
         }
     }

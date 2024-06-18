@@ -1,45 +1,28 @@
-package com.nemanja02.rma.cats.list
+package com.nemanja02.rma.leaderboard
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Pets
-import androidx.compose.material.icons.filled.Quiz
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -49,28 +32,25 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import coil.compose.rememberAsyncImagePainter
 import com.nemanja02.rma.LocalAnalytics
 import com.nemanja02.rma.auth.UserStore
 import com.nemanja02.rma.core.compose.AppIconButton
-import com.nemanja02.rma.core.theme.AppTheme
 import com.nemanja02.rma.core.theme.EnableEdgeToEdge
 import com.nemanja02.rma.drawer.AppDrawer
 import kotlinx.coroutines.launch
+import java.util.Date
 
-fun NavGraphBuilder.cats(
+fun NavGraphBuilder.leaderboard(
     route: String,
     onCatClick: (String) -> Unit,
     onProfileClick: () -> Unit,
@@ -82,14 +62,13 @@ fun NavGraphBuilder.cats(
 ) = composable(
     route = route
 ) {
-    val catListViewModel = hiltViewModel<CatListViewModel>()
-    val state = catListViewModel.state.collectAsState()
+    val leaderboardViewModel = hiltViewModel<LeaderboardViewModel>()
+    val state = leaderboardViewModel.state.collectAsState()
     println("------------")
     println(state.value)
     EnableEdgeToEdge(isDarkTheme = false)
-    CatListScreen(
+    LeaderboardScreen(
         state = state.value,
-        onCatClick = onCatClick,
         onProfileClick = onProfileClick,
         onCatsClick = onCatsClick,
         onQuizClick = onQuizClick,
@@ -100,9 +79,8 @@ fun NavGraphBuilder.cats(
 }
 
 @Composable
-fun CatListScreen(
-    state: CatListState,
-    onCatClick: (String) -> Unit,
+fun LeaderboardScreen(
+    state: LeaderboardState,
     onProfileClick: () -> Unit,
     onCatsClick: () -> Unit,
     onQuizClick: () -> Unit,
@@ -120,9 +98,8 @@ fun CatListScreen(
 
     AppDrawer (
         content = {
-            CatListScaffold(
+            LeaderboardScaffold(
                 state = state,
-                onCatClick = onCatClick,
                 onDrawerMenuClick = {
                     scope.launch {
                         drawerState.open()
@@ -136,16 +113,14 @@ fun CatListScreen(
         onQuizClick = onQuizClick,
         onLeaderboardClick = onLeaderboardClick,
         onSettingsClick = onSettingsClick,
-        selected = 1
+        selected = 3
     )
 }
 
-
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun CatListScaffold(
-    state: CatListState,
-    onCatClick: (String) -> Unit,
+private fun LeaderboardScaffold(
+    state: LeaderboardState,
     onDrawerMenuClick: () -> Unit,
 ) {
     val uiScope = rememberCoroutineScope()
@@ -169,12 +144,12 @@ private fun CatListScaffold(
                     )
                 },
                 title = { Text(
-                    text = "Cats",
+                    text = "Leaderboard",
                     onTextLayout = {}
                 ) },
                 scrollBehavior = scrollBehavior,
 
-            )
+                )
         },
         content = { paddingValues ->
             if (state.loading) {
@@ -193,58 +168,40 @@ private fun CatListScaffold(
                     contentPadding = paddingValues,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    items(
-                        items = state.cats,
-                        key = { it.id },
-                    ) { cat ->
+                    itemsIndexed(
+                        items = state.rankings,
+                        key = { index, item -> item.createdAt }
+                    ) { index, cat ->
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 8.dp)
                                 .padding(bottom = 16.dp)
-                                .clickable { onCatClick(cat.id) },
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp)
                             ) {
-                                cat.image?.let { image ->
-                                    Image(
-                                        painter = rememberAsyncImagePainter(image.url),
-                                        contentDescription = cat.name,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp), // Set the height to maintain aspect ratio
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                Spacer(modifier = Modifier.padding(5.dp))
-                                Text(
-                                    text = cat.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    onTextLayout = {}
-                                )
-                                Spacer(modifier = Modifier.padding(5.dp))
-                                Text(
-                                    text = if (cat.description.length > 250) "${
-                                        cat.description.take(
-                                            250
-                                        )
-                                    }..." else cat.description,
-                                    onTextLayout = {},
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp), // Add padding if needed
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically // Center vertically if needed
                                 ) {
-                                    cat.temperament.split(",").shuffled().take(3)
-                                        .forEach { temperament ->
-                                            Badge() {
-                                                Text(
-                                                    text = temperament.trim(),
-                                                    onTextLayout = {}
-                                                )
-                                            }
-                                        }
+                                    Text(
+                                        text = "${index+1}. ${cat.nickname}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp)) // Adjust space as needed
+                                    Text(
+                                        text = cat.result.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f),
+                                        textAlign = TextAlign.End // Align text to the end (right)
+                                    )
                                 }
                             }
                         }
@@ -265,4 +222,11 @@ private fun CatListScaffold(
             }
         },
     )
+}
+
+private fun longToDate(time: Long): String {
+    // format date dd.MM.yyyy
+
+    val date = Date(time)
+    return date.toString()
 }

@@ -116,31 +116,10 @@ fun NavGraphBuilder.profile(
         onQuizClick = onQuizClick,
         onLeaderboardClick = onLeaderboardClick,
         onSettingsClick = onSettingsClick,
+        selected = 0
     )
 }
 
-@Composable
-private fun AppDrawerActionItem(
-    icon: ImageVector,
-    text: String,
-    onClick: (() -> Unit)? = null,
-) {
-    ListItem(
-        modifier = Modifier.clickable(
-            enabled = onClick != null,
-            onClick = { onClick?.invoke() }
-        ),
-        leadingContent = {
-            Icon(imageVector = icon, contentDescription = null)
-        },
-        headlineContent = {
-            Text(
-                text = text,
-                onTextLayout = {}
-            )
-        }
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

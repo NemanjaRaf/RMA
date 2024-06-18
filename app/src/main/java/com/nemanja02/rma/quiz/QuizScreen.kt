@@ -42,6 +42,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import coil.compose.rememberImagePainter
 import com.nemanja02.rma.LocalAnalytics
+import com.nemanja02.rma.LocalAuthStore
 import com.nemanja02.rma.auth.UserStore
 import com.nemanja02.rma.cats.details.CatDetailsState
 import com.nemanja02.rma.core.theme.EnableEdgeToEdge
@@ -67,7 +68,7 @@ fun NavGraphBuilder.quiz(
 ) { navBackStackEntry ->
 
     val quizViewModel: QuizViewModel = hiltViewModel(navBackStackEntry)
-
+    val authStore = LocalAuthStore.current
     val state = quizViewModel.state.collectAsState()
 
     EnableEdgeToEdge(isDarkTheme = false)
@@ -76,7 +77,10 @@ fun NavGraphBuilder.quiz(
         ResultScreen(
             score = quizViewModel.calculateScore(),
             onFinish = onClose,
-            onPublish = onPublishScore
+            onPublish = {
+                quizViewModel.submitScore(authStore.authData.value.username)
+                onPublishScore()
+            }
         )
     } else {
         QuizScreen(

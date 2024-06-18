@@ -4,8 +4,13 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nemanja02.rma.LocalAuthStore
+import com.nemanja02.rma.auth.AuthStore
 import com.nemanja02.rma.cats.db.CatData
 import com.nemanja02.rma.cats.repository.CatsRepository
+import com.nemanja02.rma.leaderboard.api.model.LeaderboardApiModel
+import com.nemanja02.rma.leaderboard.api.model.LeaderboardPostApiModel
+import com.nemanja02.rma.leaderboard.repository.LeaderboardRepository
 import com.nemanja02.rma.quiz.model.AnswerOption
 import com.nemanja02.rma.quiz.model.Question
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,8 +26,9 @@ import javax.inject.Inject
 @HiltViewModel
 class QuizViewModel @Inject constructor(
     private val catsRepository: CatsRepository,
-) : ViewModel() {
+    private val leaderboardRepository: LeaderboardRepository
 
+) : ViewModel() {
     private val _state = MutableStateFlow(QuizContract.QuizUiState())
     val state = _state.asStateFlow()
     private fun setState(reducer: QuizContract.QuizUiState.() -> QuizContract.QuizUiState) = _state.update(reducer)
@@ -32,6 +38,25 @@ class QuizViewModel @Inject constructor(
     init {
         fetchQuestions()
         startTimer()
+    }
+
+    fun submitScore(nickname: String) {
+        println("Submit score")
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val leaderboardApiModel = LeaderboardPostApiModel(
+                        nickname = nickname,
+                        result = calculateScore(),
+                        category = 1
+                    )
+                    leaderboardRepository.postLeaderboard(leaderboardApiModel)
+                }
+            } catch (error: Exception) {
+                Log.d("QuizViewModel", "Exception", error)
+                setState { copy(error = error) }
+            }
+        }
     }
 
     // Fetch questions from the repository

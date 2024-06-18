@@ -159,6 +159,7 @@ fun CatListScreen(
         onQuizClick = onQuizClick,
         onLeaderboardClick = onLeaderboardClick,
         onSettingsClick = onSettingsClick,
+        selected = 1
     )
 }
 

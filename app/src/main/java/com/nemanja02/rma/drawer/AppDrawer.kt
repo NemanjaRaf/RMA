@@ -48,6 +48,7 @@ fun AppDrawer(
     onQuizClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    selected: Int = -1,
 ): Pair<() -> Unit, () -> Unit> {
     val authStore = LocalAuthStore.current
     val navController = rememberNavController()
@@ -76,6 +77,7 @@ fun AppDrawer(
         drawerState = drawerState,
         drawerContent = {
             CatListDrawer(
+                selected = selected,
                 onProfileClick = {
                     uiScope.launch {
                         drawerState.close()
@@ -110,6 +112,7 @@ fun AppDrawer(
 
 @Composable
 private fun CatListDrawer(
+    selected: Int = -1,
     onProfileClick: () -> Unit,
     onCatsClick: () -> Unit,
     onQuizClick: () -> Unit,
@@ -151,7 +154,7 @@ private fun CatListDrawer(
                         icon = {
                             Icon(imageVector = Icons.Default.Person, contentDescription = null)
                         },
-                        selected = false,
+                        selected = selected == 0,
                         onClick = onProfileClick
                     )
 
@@ -166,7 +169,7 @@ private fun CatListDrawer(
                         icon = {
                             Icon(imageVector = Icons.Default.Pets, contentDescription = null)
                         },
-                        selected = true,
+                        selected = selected == 1,
                         onClick = onCatsClick
                     )
 
@@ -181,7 +184,7 @@ private fun CatListDrawer(
                         icon = {
                             Icon(imageVector = Icons.Default.Quiz, contentDescription = null)
                         },
-                        selected = false,
+                        selected = selected == 2,
                         onClick = onQuizClick,
                     )
 
@@ -196,18 +199,18 @@ private fun CatListDrawer(
                         icon = {
                             Icon(imageVector = Icons.Default.Leaderboard, contentDescription = null)
                         },
-                        selected = false,
+                        selected = selected == 3,
                         onClick = onLeaderboardClick,
                     )
                 }
 
-                HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-                AppDrawerActionItem(
-                    icon = Icons.Default.Settings,
-                    text = "Settings",
-                    onClick = onSettingsClick,
-                )
+//                HorizontalDivider(modifier = Modifier.fillMaxWidth())
+//
+//                AppDrawerActionItem(
+//                    icon = Icons.Default.Settings,
+//                    text = "Settings",
+//                    onClick = onSettingsClick,
+//                )
             }
         }
     }
